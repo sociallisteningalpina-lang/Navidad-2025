@@ -22,72 +22,46 @@ def create_topic_classifier() -> Callable[[str], str]:
         # tema = 'Preguntas sobre el Producto'
     """
     
-    def classify_topic(comment: str) -> str:
-        """
-        Clasifica un comentario en un tema específico basado en patrones regex.
-        
-        Args:
-            comment: Texto del comentario a clasificar
-            
-        Returns:
-            str: Nombre del tema asignado
-        """
-        comment_lower = str(comment).lower()
-        
-        # CATEGORÍA 1: Preguntas sobre el Producto
-        if re.search(
-            r'\bprecio\b|\bcu[aá]nto vale\b|d[oó]nde|c[oó]mo consigo|'
-            r'duda|pregunta|comprar|tiendas|disponible|sirve para|'
-            r'c[oó]mo se toma|tiene az[uú]car|valor',
-            comment_lower
-        ):
-            return 'Preguntas sobre el Producto'
-        
-        # CATEGORÍA 2: Comparación con Kéfir Casero/Artesanal
-        if re.search(
-            r'b[úu]lgaros|n[oó]dulos|en casa|casero|artesanal|'
-            r'preparo yo|vendo el cultivo|hecho por mi',
-            comment_lower
-        ):
-            return 'Comparación con Kéfir Casero/Artesanal'
-        
-        # CATEGORÍA 3: Ingredientes y Salud
-        if re.search(
-            r'aditivos|almid[oó]n|preservantes|lactosa|microbiota|'
-            r'flora intestinal|saludable|bacterias|vivas|gastritis|'
-            r'colon|helicobacter|az[uú]car añadid[oa]s',
-            comment_lower
-        ):
-            return 'Ingredientes y Salud'
-        
-        # CATEGORÍA 4: Competencia y Disponibilidad
-        if re.search(
-            r'pasco|\b[eé]xito\b|\bara\b|ol[ií]mpica|d1|'
-            r'copia de|no lo venden|no llega|no lo encuentro|no hay en',
-            comment_lower
-        ):
-            return 'Competencia y Disponibilidad'
-        
-        # CATEGORÍA 5: Opinión General del Producto
-        if re.search(
-            r'rico|bueno|excelente|gusta|mejor|delicioso|espectacular|'
-            r'encanta|s[úu]per|feo|horrible|mal[ií]simo|sabe a',
-            comment_lower
-        ):
-            return 'Opinión General del Producto'
-        
-        # CATEGORÍA 6: Fuera de Tema / No Relevante
-        if re.search(
-            r'am[eé]n|jajaja|receta|gracias|bendiciones',
-            comment_lower
-        ) or len(comment_lower.split()) < 3:
-            return 'Fuera de Tema / No Relevante'
-        
-        # CATEGORÍA DEFAULT: Otros
-        return 'Otros'
+    def classify_topic(comment): 
+    comment_lower = str(comment).lower()
     
-    return classify_topic
-
+    # Reacciones Positivas al Contenido
+    if re.search(r'que bello|que lindo|gracias alpina|delicia|hermoso|bonito|precioso|me encanta|me gusta|linda|💕|🥰|😊|❤️', comment_lower):
+        return 'Reacciones Positivas al Contenido'
+    
+    # Comentarios sobre IA/Autenticidad
+    if re.search(r'\bia\b|inteligencia artificial|no es ia|que no es ia|auténtico|real', comment_lower):
+        return 'Comentarios sobre IA/Autenticidad'
+    
+    # Preguntas sobre Recetas/Producto
+    if re.search(r'c[oó]mo se prepara|qu[eé] ingredientes|mascarilla|receta|c[oó]mo hacer|explica|preparaci[oó]n|paso a paso', comment_lower):
+        return 'Preguntas sobre Recetas/Producto'
+    
+    # Comentarios Religiosos/Bendiciones
+    if re.search(r'bendiciones|am[eé]n|dios|gracias a dios|bendito|señor', comment_lower):
+        return 'Comentarios Religiosos/Bendiciones'
+    
+    # Referencias a Personas Públicas/Figuras
+    if re.search(r'zambrano|policía|aprovechado|ambicioso|verg[üu]enza|imagen personal|te ves', comment_lower):
+        return 'Referencias a Personas/Off-topic'
+    
+    # Referencias Culturales/Memes
+    if re.search(r'one piece|mapa|tinga linga|moradita|canciones|música', comment_lower):
+        return 'Referencias Culturales/Memes'
+    
+    # Comentarios sobre Animales
+    if re.search(r'perritos|perros|mascotas|animales|gatos', comment_lower):
+        return 'Comentarios sobre Animales'
+    
+    # Menciones de Lugares
+    if re.search(r'de la moradita|moradita|lugar|ciudad|pueblo', comment_lower):
+        return 'Menciones de Lugares'
+    
+    # Fuera de Tema / No Relevante / Spam
+    if re.search(r'listo|^\W*$|^[0-9]+$|^[a-z]{1,2}[0-9]+|pp099|hola\s*$', comment_lower) or len(comment_lower.split()) < 2:
+        return 'Fuera de Tema / No Relevante'
+    
+    return 'Otros'
 
 # ============================================================================
 # METADATA DE LA CAMPAÑA (OPCIONAL)

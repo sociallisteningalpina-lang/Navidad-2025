@@ -62,6 +62,7 @@ def create_topic_classifier() -> Callable[[str], str]:
             return 'Fuera de Tema / No Relevante'
     
         return 'Otros'
+    return classify_topic
 
 # ============================================================================
 # METADATA DE LA CAMPAÑA (OPCIONAL)

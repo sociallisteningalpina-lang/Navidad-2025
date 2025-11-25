@@ -23,45 +23,45 @@ def create_topic_classifier() -> Callable[[str], str]:
     """
     
     def classify_topic(comment): 
-    comment_lower = str(comment).lower()
+        comment_lower = str(comment).lower()
     
     # Reacciones Positivas al Contenido
-    if re.search(r'que bello|que lindo|gracias alpina|delicia|hermoso|bonito|precioso|me encanta|me gusta|linda|💕|🥰|😊|❤️', comment_lower):
-        return 'Reacciones Positivas al Contenido'
+        if re.search(r'que bello|que lindo|gracias alpina|delicia|hermoso|bonito|precioso|me encanta|me gusta|linda|💕|🥰|😊|❤️', comment_lower):
+            return 'Reacciones Positivas al Contenido'
     
     # Comentarios sobre IA/Autenticidad
-    if re.search(r'\bia\b|inteligencia artificial|no es ia|que no es ia|auténtico|real', comment_lower):
-        return 'Comentarios sobre IA/Autenticidad'
+        if re.search(r'\bia\b|inteligencia artificial|no es ia|que no es ia|auténtico|real', comment_lower):
+            return 'Comentarios sobre IA/Autenticidad'
     
     # Preguntas sobre Recetas/Producto
-    if re.search(r'c[oó]mo se prepara|qu[eé] ingredientes|mascarilla|receta|c[oó]mo hacer|explica|preparaci[oó]n|paso a paso', comment_lower):
-        return 'Preguntas sobre Recetas/Producto'
+        if re.search(r'c[oó]mo se prepara|qu[eé] ingredientes|mascarilla|receta|c[oó]mo hacer|explica|preparaci[oó]n|paso a paso', comment_lower):
+            return 'Preguntas sobre Recetas/Producto'
     
     # Comentarios Religiosos/Bendiciones
-    if re.search(r'bendiciones|am[eé]n|dios|gracias a dios|bendito|señor', comment_lower):
-        return 'Comentarios Religiosos/Bendiciones'
+        if re.search(r'bendiciones|am[eé]n|dios|gracias a dios|bendito|señor', comment_lower):
+            return 'Comentarios Religiosos/Bendiciones'
     
     # Referencias a Personas Públicas/Figuras
-    if re.search(r'zambrano|policía|aprovechado|ambicioso|verg[üu]enza|imagen personal|te ves', comment_lower):
-        return 'Referencias a Personas/Off-topic'
+        if re.search(r'zambrano|policía|aprovechado|ambicioso|verg[üu]enza|imagen personal|te ves', comment_lower):
+            return 'Referencias a Personas/Off-topic'
     
     # Referencias Culturales/Memes
-    if re.search(r'one piece|mapa|tinga linga|moradita|canciones|música', comment_lower):
-        return 'Referencias Culturales/Memes'
+        if re.search(r'one piece|mapa|tinga linga|moradita|canciones|música', comment_lower):
+            return 'Referencias Culturales/Memes'
     
     # Comentarios sobre Animales
-    if re.search(r'perritos|perros|mascotas|animales|gatos', comment_lower):
-        return 'Comentarios sobre Animales'
+        if re.search(r'perritos|perros|mascotas|animales|gatos', comment_lower):
+            return 'Comentarios sobre Animales'
     
     # Menciones de Lugares
-    if re.search(r'de la moradita|moradita|lugar|ciudad|pueblo', comment_lower):
-        return 'Menciones de Lugares'
+        if re.search(r'de la moradita|moradita|lugar|ciudad|pueblo', comment_lower):
+            return 'Menciones de Lugares'
     
     # Fuera de Tema / No Relevante / Spam
-    if re.search(r'listo|^\W*$|^[0-9]+$|^[a-z]{1,2}[0-9]+|pp099|hola\s*$', comment_lower) or len(comment_lower.split()) < 2:
-        return 'Fuera de Tema / No Relevante'
+        if re.search(r'listo|^\W*$|^[0-9]+$|^[a-z]{1,2}[0-9]+|pp099|hola\s*$', comment_lower) or len(comment_lower.split()) < 2:
+            return 'Fuera de Tema / No Relevante'
     
-    return 'Otros'
+        return 'Otros'
 
 # ============================================================================
 # METADATA DE LA CAMPAÑA (OPCIONAL)

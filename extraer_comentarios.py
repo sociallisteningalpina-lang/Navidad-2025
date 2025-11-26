@@ -236,6 +236,67 @@ class SocialMediaScraper:
             
             time.sleep(10)
 
+    def _deduplicate_items(self, items: List[dict], platform: str) -> List[dict]:
+        """
+        Elimina duplicados de los items devueltos por Apify.
+    
+        Args:
+        items: Lista de items de Apify
+        platform: Nombre de la plataforma
+        
+        Returns:
+        List[dict]: Items únicos
+        """
+        if not items:
+            return items
+    
+        seen_hashes = set()
+        unique_items = []
+        duplicates_found = 0
+    
+        for item in items:
+            # Crear hash basado en campos únicos según plataforma
+            if platform == 'Facebook':
+                # Para Facebook: usar text + date
+                text = str(item.get('text', ''))
+                date = str(item.get('date', item.get('createdTime', '')))
+                unique_key = f"{text}|{date}"
+        
+            elif platform == 'Instagram':
+                # Para Instagram: usar text + timestamp
+                text = str(item.get('text', ''))
+                timestamp = str(item.get('timestamp', item.get('createdTime', '')))
+                unique_key = f"{text}|{timestamp}"
+        
+            elif platform == 'TikTok':
+                # Para TikTok: usar cid (comment id) si existe, sino text + createTime
+                cid = item.get('cid')
+                if cid:
+                    unique_key = f"cid_{cid}"
+                else:
+                    text = str(item.get('text', ''))
+                    create_time = str(item.get('createTime', ''))
+                    unique_key = f"{text}|{create_time}"
+        
+            else:
+                # Fallback genérico
+                text = str(item.get('text', ''))
+                unique_key = text
+        
+            # Crear hash MD5 del unique_key
+            item_hash = hashlib.md5(unique_key.encode('utf-8')).hexdigest()
+        
+            if item_hash not in seen_hashes:
+                seen_hashes.add(item_hash)
+                unique_items.append(item)
+            else:
+                duplicates_found += 1
+    
+        if duplicates_found > 0:
+            logger.warning(f"⚠️  Removed {duplicates_found} duplicate items from Apify response")
+    
+        return unique_items
+
     def scrape_with_retry(
         self, 
         scrape_function, 
@@ -311,28 +372,36 @@ class SocialMediaScraper:
         """Extrae comentarios de Facebook"""
         try:
             logger.info(f"Processing Facebook Post {post_number}: {url}")
-            
+        
             run_input = {
                 "startUrls": [{"url": self.clean_url(url)}], 
                 "maxComments": max_comments
             }
-            
+        
             run = self.client.actor("apify/facebook-comments-scraper").call(
                 run_input=run_input
             )
             run_status = self._wait_for_run_finish(run)
-            
+        
             if not run_status or run_status["status"] != "SUCCEEDED":
                 logger.error(
                     f"Facebook extraction failed. Status: {run_status.get('status', 'UNKNOWN')}"
                 )
                 return []
-            
-            items = self.client.dataset(run["defaultDatasetId"]).list_items(limit=max_comments).items
+        
+            # Obtener items de Apify
+            dataset = self.client.dataset(run["defaultDatasetId"])
+            items_response = dataset.list_items(clean=True, limit=max_comments)
+            items = items_response.items
+        
             logger.info(f"Extraction complete: {len(items)} items found.")
-            
+        
+            # ✅ NUEVO: DEDUPLICACIÓN MANUAL POST-EXTRACCIÓN
+            items = self._deduplicate_items(items, platform='Facebook')
+            logger.info(f"After deduplication: {len(items)} unique items.")
+        
             return self._process_facebook_results(items, url, post_number, campaign_info)
-            
+        
         except Exception as e:
             logger.error(f"Error in scrape_facebook_comments: {e}")
             raise
@@ -347,27 +416,35 @@ class SocialMediaScraper:
         """Extrae comentarios de Instagram"""
         try:
             logger.info(f"Processing Instagram Post {post_number}: {url}")
-            
+        
             run_input = {
                 "directUrls": [url], 
                 "resultsType": "comments", 
                 "resultsLimit": max_comments
             }
-            
+        
             run = self.client.actor("apify/instagram-scraper").call(run_input=run_input)
             run_status = self._wait_for_run_finish(run)
-            
+        
             if not run_status or run_status["status"] != "SUCCEEDED":
                 logger.error(
                     f"Instagram extraction failed. Status: {run_status.get('status', 'UNKNOWN')}"
                 )
                 return []
-            
-            items = self.client.dataset(run["defaultDatasetId"]).list_items(limit=max_comments).items
+        
+            # Obtener items de Apify
+            dataset = self.client.dataset(run["defaultDatasetId"])
+            items_response = dataset.list_items(clean=True, limit=max_comments)
+            items = items_response.items
+        
             logger.info(f"Extraction complete: {len(items)} items found.")
-            
+        
+            # ✅ NUEVO: DEDUPLICACIÓN MANUAL POST-EXTRACCIÓN
+            items = self._deduplicate_items(items, platform='Instagram')
+            logger.info(f"After deduplication: {len(items)} unique items.")
+        
             return self._process_instagram_results(items, url, post_number, campaign_info)
-            
+        
         except Exception as e:
             logger.error(f"Error in scrape_instagram_comments: {e}")
             raise
@@ -382,28 +459,36 @@ class SocialMediaScraper:
         """Extrae comentarios de TikTok"""
         try:
             logger.info(f"Processing TikTok Post {post_number}: {url}")
-            
+        
             run_input = {
                 "postURLs": [self.clean_url(url)], 
                 "maxCommentsPerPost": max_comments
             }
-            
+        
             run = self.client.actor("clockworks/tiktok-comments-scraper").call(
                 run_input=run_input
             )
             run_status = self._wait_for_run_finish(run)
-            
+        
             if not run_status or run_status["status"] != "SUCCEEDED":
                 logger.error(
                     f"TikTok extraction failed. Status: {run_status.get('status', 'UNKNOWN')}"
                 )
                 return []
-            
-            items = self.client.dataset(run["defaultDatasetId"]).list_items(limit=max_comments).items
+        
+            # Obtener items de Apify
+            dataset = self.client.dataset(run["defaultDatasetId"])
+            items_response = dataset.list_items(clean=True, limit=max_comments)
+            items = items_response.items
+        
             logger.info(f"Extraction complete: {len(items)} comments found.")
-            
+        
+            # ✅ NUEVO: DEDUPLICACIÓN MANUAL POST-EXTRACCIÓN
+            items = self._deduplicate_items(items, platform='TikTok')
+            logger.info(f"After deduplication: {len(items)} unique items.")
+        
             return self._process_tiktok_results(items, url, post_number, campaign_info)
-            
+        
         except Exception as e:
             logger.error(f"Error in scrape_tiktok_comments: {e}")
             raise
@@ -617,6 +702,7 @@ def create_failed_registry_entry(
         'extraction_status': 'FAILED'
     }
 
+
 def normalize_timestamp_for_hash(timestamp_value) -> str:
     """
     Normaliza un timestamp a formato estándar para el hash.
@@ -694,7 +780,8 @@ def create_unique_comment_hash(row: pd.Series) -> str:
     
     # Generar hash MD5
     return hashlib.md5(unique_string.encode('utf-8')).hexdigest()
-    
+
+
 def normalize_existing_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     Normaliza los datos existentes para asegurar consistencia.
@@ -741,6 +828,7 @@ def normalize_existing_data(df: pd.DataFrame) -> pd.DataFrame:
     
     logger.info(f"Normalized {len(df)} existing rows")
     return df
+
 
 def merge_comments(
     df_existing: pd.DataFrame, 
@@ -877,6 +965,7 @@ def process_datetime_columns(df: pd.DataFrame) -> pd.DataFrame:
 # ============================================================================
 # FUNCIONES DE PERSISTENCIA
 # ============================================================================
+
 def save_to_excel(
     df: pd.DataFrame, 
     filename: str, 
@@ -905,10 +994,10 @@ def save_to_excel(
                 df_copy['post_number'] = pd.to_numeric(df_copy['post_number'], errors='coerce')
                 df_copy['likes_count'] = pd.to_numeric(df_copy['likes_count'], errors='coerce').fillna(0).astype(int)
                 
-                # Resumen general - CORREGIDO
+                # Resumen general
                 summary = df_copy.groupby(['post_number', 'platform', 'post_url'], dropna=False).agg(
                     Total_Comentarios=('comment_text', lambda x: int(x.notna().sum())),
-                    Total_Likes=('likes_count', 'sum'),  # Ahora es seguro sumar
+                    Total_Likes=('likes_count', 'sum'),
                     Primera_Extraccion=(
                         'created_time_processed', 
                         lambda x: x.min() if x.notna().any() else None
@@ -922,7 +1011,7 @@ def save_to_excel(
                 summary = summary.sort_values('post_number')
                 summary.to_excel(writer, sheet_name='Resumen_Posts', index=False)
                 
-                # Estadísticas por plataforma - CORREGIDO
+                # Estadísticas por plataforma
                 df_with_comments = df_copy[df_copy['comment_text'].notna()].copy()
                 
                 if not df_with_comments.empty:
@@ -954,6 +1043,7 @@ def save_to_excel(
     except Exception as e:
         logger.error(f"Error saving Excel file: {e}", exc_info=True)
         return False
+
 
 def load_existing_comments(filename: str) -> pd.DataFrame:
     """
@@ -1210,15 +1300,4 @@ def run_extraction():
 
 if __name__ == "__main__":
     run_extraction()
-
-
-
-
-
-
-
-
-
-
-
 
